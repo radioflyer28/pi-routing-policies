@@ -8,7 +8,15 @@
 - Add paginated, credential-free local model/pricing discovery and schema/registry-validated single-namespace proposals.
 - Add opt-in task-fit research through host web tools: bounded benchmark/practitioner comparisons, source/version/setup caveats, sanitized queries, explicit skip/unavailable paths, and separate consent for paid model testing.
 - Add explicit user-command apply, stale-file/session/branch checks, exact backups and atomic replacement; never hot-reload, switch models or run inference from advisor support operations.
+- Fix overflowing advisor apply dialogs: review the complete proposal in a scrollable editor, then approve a compact confirmation; cancellation or review edits never write the policy.
+- Remove advisor proposal timeouts, including during review; retain bounded pending drafts and apply-time validation, and distinguish unavailable, applied, discarded, wrong-session and wrong-branch IDs. Reload/reset still loses in-memory drafts.
 - Replace M001 S06's savings/optimization emphasis with user-owned routing-policy construction; caching and live evaluation remain deferred. See [advisor guide](docs/ADVISOR.md).
+
+### Audit follow-up
+
+- Start coordinator decision TTLs after preparation completes, expire at the deadline, and distinguish the 32-handle cap (`INVALID_STATE`) from non-expiring advisor drafts.
+- Keep the latest ten advisor recovery backups after successful writes; preserve the new backup and unrelated files, and report best-effort cleanup failures without masking a successful apply.
+- Add regression coverage for TTL boundaries/cap recovery, semantic review edits, confirmation-time discard/apply/file changes, backup retention/failure handling, auth-filter defaults and strict direct-image capacity admission.
 
 ### Repository and licensing
 

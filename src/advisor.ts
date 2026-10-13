@@ -105,9 +105,16 @@ function validateTargets(ctx: Registry, policy: Policy, namespace: string, loade
 
 /** Tool can inspect/propose only. Applying is deliberately command-only, never a tool action. */
 export function registerAdvisor(pi: ExtensionAPI, options: { file?: string; loaded?: Policy } = {}) {
-  type Proposal = ReturnType<typeof buildAdvisorPolicy> & { fingerprint: string; session: string; anchor: string | null; expires: number };
+  type Proposal = ReturnType<typeof buildAdvisorPolicy> & { fingerprint: string; session: string; anchor: string | null };
   const pending = new Map<string, Proposal>();
-  const clear = () => { pending.clear(); };
+  // Keep only recent terminal reasons, not the retired proposals/configurations.
+  const retired = new Map<string, "applied" | "discarded">();
+  const retire = (id: string, reason: "applied" | "discarded") => {
+    pending.delete(id);
+    retired.set(id, reason);
+    while (retired.size > 32) retired.delete(retired.keys().next().value!);
+  };
+  const clear = () => { pending.clear(); retired.clear(); };
   pi.on("session_start", clear);
   pi.on("session_shutdown", clear);
   const show = (ctx: ExtensionContext, report: unknown) => {
@@ -138,13 +145,12 @@ export function registerAdvisor(pi: ExtensionAPI, options: { file?: string; load
         const proposed = buildAdvisorPolicy(state.policy, args.draft);
         if (Buffer.byteLength(JSON.stringify(proposed.policy.config, null, 2) + "\n") > 262_144) throw new RoutingError("INVALID_CONFIG", "Formatted policy exceeds 256 KiB");
         const warnings = validateTargets(ctx, proposed.policy, proposed.namespace, options.loaded);
-        for (const [id, p] of pending) if (p.expires <= Date.now()) pending.delete(id);
-        if (pending.size >= 8) throw new RoutingError("STALE_DECISION", "Eight drafts are pending; use /vmodel advisor discard or wait for 30-minute expiry");
+        if (pending.size >= 8) throw new RoutingError("STALE_DECISION", "Eight drafts are pending; apply a draft or use /vmodel advisor discard to free space. Drafts do not expire.");
         const proposalId = randomUUID();
         pi.appendEntry(ADVISOR_TYPE, { proposalId });
-        pending.set(proposalId, { ...proposed, fingerprint: state.fingerprint, session: ctx.sessionManager.getSessionId(), anchor: ctx.sessionManager.getLeafId(), expires: Date.now() + 1_800_000 });
+        pending.set(proposalId, { ...proposed, fingerprint: state.fingerprint, session: ctx.sessionManager.getSessionId(), anchor: ctx.sessionManager.getLeafId() });
         result = { proposalId, configPath: options.file, created: proposed.created, changes: proposed.changes, proposedConfig: proposed.policy.config, warnings,
-          next: `Review this complete proposal, then the user may run /vmodel advisor apply ${proposalId}. This does not reload or select a model. Drafts expire after 30 minutes and are not persisted.` };
+          next: `Review this complete proposal, then the user may run /vmodel advisor apply ${proposalId}. This does not reload or select a model. Drafts have no time limit, but are kept only in this extension instance and are lost on reload, restart or session reset.` };
       } else throw new RoutingError("INVALID_STATE", "Advisor only supports inspect and propose");
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], details: result };
     },
@@ -155,23 +161,47 @@ export function registerAdvisor(pi: ExtensionAPI, options: { file?: string; load
       show(ctx, "Start /skill:routing-policy-advisor to design a namespace interactively (normal assistant billing applies). The bundled skill uses virtual_models_advisor for local discovery and proposals. Install the package with pi install . to load its skill, or load skills/routing-policy-advisor/SKILL.md explicitly. No inference or policy changes ran from this command. Apply: /vmodel advisor apply <proposalId>; discard drafts: /vmodel advisor discard.");
       return true;
     }
-    if (args === "advisor discard") { clear(); show(ctx, "Advisor drafts discarded; no policy changes."); return true; }
+    if (args === "advisor discard") {
+      for (const id of pending.keys()) retire(id, "discarded");
+      show(ctx, "Advisor drafts discarded; no policy changes.");
+      return true;
+    }
     const match = /^advisor apply ([a-f0-9-]{36})$/.exec(args);
     if (!match) throw new RoutingError("INVALID_SELECTION", "Use /vmodel advisor, advisor discard, or advisor apply <proposalId>");
     await ctx.waitForIdle();
     const id = match[1]!;
     const get = () => {
       const p = pending.get(id);
-      if (!p || p.expires <= Date.now() || p.session !== ctx.sessionManager.getSessionId() || (p.anchor && !ctx.sessionManager.getBranch().some(e => e.id === p.anchor))) throw new RoutingError("STALE_DECISION", "Draft expired, was consumed, or belongs to another session/branch; propose again");
+      if (!p) {
+        const reason = retired.get(id);
+        if (reason === "applied") throw new RoutingError("STALE_DECISION", "Draft was already applied; inspect the current policy before proposing further changes.");
+        if (reason === "discarded") throw new RoutingError("STALE_DECISION", "Draft was explicitly discarded; propose again.");
+        throw new RoutingError("STALE_DECISION", "Draft is not available in this extension instance. The ID may be unknown, or its state was lost on reload, restart or session reset; propose again. This is not a timeout.");
+      }
+      if (p.session !== ctx.sessionManager.getSessionId()) throw new RoutingError("STALE_DECISION", "Draft belongs to another session; propose again in the current session.");
+      if (p.anchor && !ctx.sessionManager.getBranch().some(e => e.id === p.anchor)) throw new RoutingError("STALE_DECISION", "Draft belongs to another branch; return to its original branch or propose again.");
       return p;
     };
     const proposed = get();
-    if (ctx.hasUI && !await ctx.ui.confirm("Apply routing policy proposal?", JSON.stringify({ file: options.file, created: proposed.created, changes: proposed.changes, config: proposed.policy.config }, null, 2))) return true;
+    if (ctx.hasUI) {
+      // confirm() renders its message as an unbounded, non-scrolling title.
+      // Keep the complete report in Pi's scrollable editor, not in that title.
+      const review = JSON.stringify({ file: options.file, created: proposed.created, changes: proposed.changes, config: proposed.policy.config }, null, 2);
+      const reviewed = await ctx.ui.editor("Review only; Enter continues", review);
+      if (reviewed === undefined) return true;
+      if (reviewed !== review) {
+        ctx.ui.notify("Review edits were not applied. Request a new proposal to change the policy.", "warning");
+        return true;
+      }
+      get(); // Review may yield while the session/branch changes or the draft is discarded.
+      const summary = `${proposed.created ? "Create" : "Update"} policy: ${proposed.namespace}\n${proposed.changes.length} changes. No reload or model switch.`;
+      if (!await ctx.ui.confirm("Apply reviewed policy?", summary)) return true;
+    }
     get(); // Confirmation may yield while the session/branch/catalog changes.
     validateTargets(ctx, proposed.policy, proposed.namespace, options.loaded);
     const written = writePolicyFile(options.file!, proposed.fingerprint, proposed.policy.config);
-    pending.delete(id);
-    show(ctx, { applied: id, configPath: options.file, backup: written.backup, next: "Run /reload, then /vmodel doctor and explicitly select your desired policy. Active model and loaded policy were not changed." });
+    retire(id, "applied");
+    show(ctx, { applied: id, configPath: options.file, backup: written.backup, ...(written.backupCleanupWarning ? { warning: written.backupCleanupWarning } : {}), next: "Run /reload, then /vmodel doctor and explicitly select your desired policy. Active model and loaded policy were not changed." });
     return true;
   };
 }

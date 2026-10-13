@@ -325,7 +325,7 @@ A passing estimate is **not a final-payload or output-token guarantee**. Pi can 
 
 `select` and `prepare` accept task `state`, `selection`, optional `allowedChoices`, `requiredInputs` and `capacity`. Omitted selection uses the configured global entry; if global routing is disabled it must be supplied. `answer` takes `decisionId` and `choice`. Explicit `resolve`, and `select` with an explicit role, need no selector call.
 
-Pending coordinator decisions are single-use, limited to 32, expire after five minutes and are lost on reload. They are session/branch-bound correlation handles, not security tokens. Model-supplied restrictions are not trusted authorization; the consuming integration must enforce its own restrictions and delegation rules.
+Pending coordinator decisions are single-use, limited to 32, expire five minutes after preparation completes and are lost on reload. Expired handles are swept on the next tool call; a full pending set returns `INVALID_STATE`. These handles are separate from advisor drafts, which have no time limit. They are session/branch-bound correlation handles, not security tokens. Model-supplied restrictions are not trusted authorization; the consuming integration must enforce its own restrictions and delegation rules.
 
 ## Library use
 

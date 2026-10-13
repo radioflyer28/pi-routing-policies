@@ -132,6 +132,8 @@ test("direct routes assess their own request strictly without classification or 
   await assert.rejects(f.runtime.resolveModel(f.session.model!, [{ role: "user", content: "X".repeat(500000), timestamp: 2 }], { reason: "direct", thinkingLevel: "off" }), error("INELIGIBLE"));
   assert.equal(receipt(f).candidates[0]?.choice, "direct");
   assert.equal(receipt(f).candidates[0]?.reason, "capacity_context");
+  await assert.rejects(f.runtime.resolveModel(f.session.model!, [{ role: "user", timestamp: 3, content: [{ type: "image", mimeType: "image/png", data: "AA==" }] }], { reason: "direct", thinkingLevel: "off" }), error("INELIGIBLE"));
+  assert.equal(receipt(f).candidates[0]?.reason, "capacity_unknown");
   assert.equal(f.classified.length, 0);
   assert.equal(f.calls.length, 0);
 });

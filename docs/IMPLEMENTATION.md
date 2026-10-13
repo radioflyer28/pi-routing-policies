@@ -148,7 +148,7 @@ Registry-driven config scaffolding is deferred. This slice performs no file crea
 
 `virtual_models` supports `list`, `resolve`, `select`, `prepare`, `answer`. Automatic `select` uses the chosen entry's configured backend directly, including scope/inheritance, and returns an assignment without launching work. Explicit selections bypass the backend. Coordinator `prepare`/`answer` needs no dedicated selector.
 
-Pending decisions are limited to 32, expire after five minutes, are branch/session-bound and single-use, and are discarded on reload. Tool-supplied candidate/input restrictions are model input, not trusted authorization. Pi's scoped-model list is a selection control, not a physical-model authorization policy. Consumers must enforce their own inventory restrictions, workflow rules, guidance application and delegation boundaries.
+Pending coordinator decisions are limited to 32, expire five minutes after preparation completes (at or beyond the deadline), are branch/session-bound and single-use, and are discarded on reload. Every tool call sweeps expired handles before the cap check; a full set returns `INVALID_STATE`. This TTL does not apply to advisor drafts. Tool-supplied candidate/input restrictions are model input, not trusted authorization. Pi's scoped-model list is a selection control, not a physical-model authorization policy. Consumers must enforce their own inventory restrictions, workflow rules, guidance application and delegation boundaries.
 
 ## Offline evaluation (M001 S03)
 

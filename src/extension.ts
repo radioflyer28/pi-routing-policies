@@ -173,7 +173,7 @@ export function registerVirtualModels(pi: ExtensionAPI, input: unknown, configPa
     },
     async execute(_id, args, signal, _update, ctx) {
       const now = Date.now();
-      for (const [id, item] of pending) if (item.expires < now) pending.delete(id);
+      for (const [id, item] of pending) if (item.expires <= now) pending.delete(id);
       let receipt: DecisionReceipt | undefined;
       const router = createRouter(policy.config, piInventory(ctx), { onReceipt: value => { receipt = value; recordReceipt(value, "tool"); } });
       const limits = { allowedChoices: args.allowedChoices, requiredInputs: args.requiredInputs, capacity: args.capacity };
@@ -194,12 +194,12 @@ export function registerVirtualModels(pi: ExtensionAPI, input: unknown, configPa
           break;
         }
         case "prepare": {
-          if (pending.size >= 32) throw new RoutingError("STALE_DECISION", "Too many pending decisions; answer or wait for their five-minute expiry");
+          if (pending.size >= 32) throw new RoutingError("INVALID_STATE", "32 coordinator decisions are pending; answer one or wait for its five-minute expiry. Advisor drafts are separate and do not expire.");
           const selection = args.selection ?? policy.autoModel;
           if (!selection) throw new RoutingError("INVALID_SELECTION", "Specify a namespace/auto selection when the global router is disabled");
           const decision = await router.prepare(selection, args.state ?? {}, limits, signal);
           pi.appendEntry("virtual-models.decision", { id: decision.id });
-          pending.set(decision.id, { router, decision, session: ctx.sessionManager.getSessionId(), anchor: ctx.sessionManager.getLeafId(), expires: now + 300_000 });
+          pending.set(decision.id, { router, decision, session: ctx.sessionManager.getSessionId(), anchor: ctx.sessionManager.getLeafId(), expires: Date.now() + 300_000 });
           result = decision; break;
         }
         case "answer": {

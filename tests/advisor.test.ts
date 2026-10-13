@@ -64,6 +64,8 @@ test("advisor inventory is allowlisted, paginated, local and credential-free", a
   const page = advisorInventory(fake, { availableOnly: false });
   assert.equal(page.models.length, 50); assert.equal(page.nextOffset, 50); assert.equal(page.models[0]!.prices.input, null); assert.equal(page.models[0]!.prices.output, null);
   assert.equal(advisorInventory(fake).total, 0);
+  assert.equal(advisorInventory(fake, { availableOnly: true }).total, 0);
+  assert.equal(advisorInventory(fake, { availableOnly: false }).total, 60);
   assert.equal(f.session.model, initial); assert.equal(f.calls.length + f.classified.length, 0);
 });
 
@@ -105,7 +107,7 @@ test("advisor handles UI rejection, discard and branch changes without writing",
   const file = join(f.dir, "virtual-models.json");
   const before = await readFile(file, "utf8");
   const p = (await tool(f, { action: "propose", draft: draft() })).details as any;
-  await command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui, confirm: async () => false } });
+  await command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui, editor: async (_title, prefill) => prefill, confirm: async () => false } });
   assert.equal(await readFile(file, "utf8"), before);
   await command(f, "advisor discard");
   await assert.rejects(command(f, `advisor apply ${p.proposalId}`), error("STALE_DECISION"));
@@ -175,7 +177,7 @@ test("default extension registers onboarding without a policy; missing explicit 
   assert.notEqual(explicit.status, 0); assert(explicit.stderr.includes("Explicit policy file does not exist"));
 });
 
-test("advisor drafts are bounded, expire and fail across sessions or confirmation changes", async t => {
+test("advisor drafts stay bounded without time eviction and fail across sessions or confirmation changes", async t => {
   const f = await fixture(t, { advisorFile: true });
   const first = (await tool(f, { action: "propose", draft: draft() })).details as any;
   const alien = Object.create(f.ctx.sessionManager);
@@ -183,14 +185,15 @@ test("advisor drafts are bounded, expire and fail across sessions or confirmatio
   await assert.rejects(command(f, `advisor apply ${first.proposalId}`, { sessionManager: alien }), error("STALE_DECISION"));
   for (let i = 0; i < 7; i++) await tool(f, { action: "propose", draft: draft() });
   await assert.rejects(tool(f, { action: "propose", draft: draft() }), error("STALE_DECISION"));
-  const future = Date.now() + 1_800_001;
+  const future = Date.now() + 365 * 86_400_000;
   const clock = t.mock.method(Date, "now", () => future);
-  await assert.rejects(command(f, `advisor apply ${first.proposalId}`), error("STALE_DECISION"));
+  await command(f, `advisor apply ${first.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui, editor: async (_title, prefill) => prefill, confirm: async () => false } });
+  await assert.rejects(tool(f, { action: "propose", draft: draft() }), e => error("STALE_DECISION")(e) && /Eight drafts/.test((e as Error).message));
   clock.mock.restore();
   await command(f, "advisor discard");
   const before = await readFile(join(f.dir, "virtual-models.json"), "utf8");
   const p = (await tool(f, { action: "propose", draft: draft() })).details as any;
-  await assert.rejects(command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui, confirm: async () => {
+  await assert.rejects(command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui, editor: async (_title, prefill) => prefill, confirm: async () => {
     f.api.unregisterProvider("fixture"); return true;
   } } }), error("INELIGIBLE"));
   assert.equal(await readFile(join(f.dir, "virtual-models.json"), "utf8"), before);
@@ -207,4 +210,96 @@ test("advisor accepts an observed LLM selector, warns on thinking clamp, and can
   assert.equal(f.calls.length + f.classified.length + f.llmSelections.length, 0);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(f.session.getToolDefinition("virtual_models_advisor")!.execute("cancelled", { action: "inspect" }, controller.signal, undefined, f.ctx as ExtensionToolContext), error("ABORTED"));
+});
+
+
+test("advisor drafts have no clock deadline before or during interactive approval", async t => {
+  const f = await fixture(t, { advisorFile: true });
+  const p = (await tool(f, { action: "propose", draft: draft() })).details as any;
+  assert.match(p.next, /no time limit/);
+  let now = Date.now() + 86_400_000;
+  t.mock.method(Date, "now", () => now);
+  let reviewed = false, confirmed = false;
+  await command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui,
+    editor: async (_title, prefill) => { reviewed = true; now += 365 * 86_400_000; return prefill; },
+    confirm: async () => { confirmed = true; now += 365 * 86_400_000; return true; },
+  } });
+  assert(reviewed && confirmed);
+  assert.deepEqual(JSON.parse(await readFile(join(f.dir, "virtual-models.json"), "utf8")), p.proposedConfig);
+  assert.equal(f.calls.length + f.classified.length, 0);
+});
+
+test("advisor distinguishes unavailable, session, branch, discarded and applied drafts", async t => {
+  let latestContext: F["ctx"] | undefined;
+  const f = await fixture(t, { advisorFile: true, configure: pi => {
+    pi.on("session_start", (_event, ctx) => { latestContext = ctx; });
+  } });
+  const file = join(f.dir, "virtual-models.json");
+  const before = await readFile(file, "utf8");
+  const stale = (message: RegExp) => (e: unknown) => error("STALE_DECISION")(e) && message.test((e as Error).message);
+  await assert.rejects(command(f, "advisor apply 00000000-0000-0000-0000-000000000000"), stale(/not available.*not a timeout/s));
+  const anchor = f.manager.getLeafId()!;
+  const p = (await tool(f, { action: "propose", draft: draft() })).details as any;
+  const proposalLeaf = f.manager.getLeafId()!;
+  const alien = Object.create(f.ctx.sessionManager);
+  alien.getSessionId = () => "another-session";
+  await assert.rejects(command(f, `advisor apply ${p.proposalId}`, { sessionManager: alien }), stale(/another session/));
+  f.manager.branch(anchor);
+  await assert.rejects(command(f, `advisor apply ${p.proposalId}`), stale(/another branch/));
+  f.manager.branch(proposalLeaf);
+  await command(f, "advisor discard");
+  await assert.rejects(command(f, `advisor apply ${p.proposalId}`), stale(/explicitly discarded/));
+  const lost = (await tool(f, { action: "propose", draft: draft() })).details as any;
+  await f.session.reload();
+  await f.session.bindExtensions({ mode: "print" }); // Headless fixture has no persistent UI bindings.
+  assert(latestContext);
+  f.ctx = latestContext; // The host revokes captured contexts on reload.
+  await assert.rejects(command(f, `advisor apply ${lost.proposalId}`), stale(/not available.*reload.*not a timeout/s));
+  assert.equal(await readFile(file, "utf8"), before);
+  const fresh = (await tool(f, { action: "propose", draft: draft() })).details as any;
+  await command(f, `advisor apply ${fresh.proposalId}`);
+  await command(f, "advisor discard");
+  await assert.rejects(command(f, `advisor apply ${fresh.proposalId}`), stale(/already applied/));
+  assert.deepEqual(JSON.parse(await readFile(file, "utf8")), fresh.proposedConfig);
+  assert.equal(f.calls.length + f.classified.length, 0);
+});
+
+test("advisor terminal-reason diagnostics retain only the latest 32 IDs", async t => {
+  const f = await fixture(t, { advisorFile: true });
+  const ids: string[] = [];
+  for (let batch = 0; batch < 5; batch++) {
+    for (let i = 0; i < 8; i++) ids.push(((await tool(f, { action: "propose", draft: draft() })).details as any).proposalId);
+    await command(f, "advisor discard");
+  }
+  const stale = (message: RegExp) => (e: unknown) => error("STALE_DECISION")(e) && message.test((e as Error).message);
+  await assert.rejects(command(f, `advisor apply ${ids[7]}`), stale(/not available/));
+  await assert.rejects(command(f, `advisor apply ${ids[8]}`), stale(/explicitly discarded/));
+  await assert.rejects(command(f, `advisor apply ${ids[39]}`), stale(/explicitly discarded/));
+  assert(!readPolicyFile(join(f.dir, "virtual-models.json")).policy!.config.models["pr/review"]);
+});
+
+
+for (const change of ["discard", "apply", "disk"] as const) test(`advisor rejects ${change} during confirmation without a second write`, async t => {
+  const f = await fixture(t, { advisorFile: true });
+  const file = join(f.dir, "virtual-models.json");
+  let expected = await readFile(file, "utf8");
+  const p = (await tool(f, { action: "propose", draft: draft() })).details as any;
+  const message = change === "discard" ? /explicitly discarded/ : change === "apply" ? /already applied/ : /Policy changed since proposal/;
+  await assert.rejects(command(f, `advisor apply ${p.proposalId}`, { hasUI: true, ui: { ...f.ctx.ui,
+    editor: async (_title, prefill) => prefill,
+    confirm: async () => {
+      if (change === "discard") await command(f, "advisor discard");
+      else if (change === "apply") {
+        await command(f, `advisor apply ${p.proposalId}`);
+        expected = await readFile(file, "utf8");
+      } else {
+        expected += "\n"; // Even whitespace-only external changes invalidate the fingerprint.
+        await writeFile(file, expected);
+      }
+      return true;
+    },
+  } }), e => error("STALE_DECISION")(e) && message.test((e as Error).message));
+  assert.equal(await readFile(file, "utf8"), expected);
+  assert.equal((await readdir(f.dir)).filter(name => name.endsWith(".bak")).length, change === "apply" ? 1 : 0);
+  assert.equal(f.calls.length + f.classified.length + f.llmSelections.length, 0);
 });

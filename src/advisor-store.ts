@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { closeSync, fsyncSync, linkSync, lstatSync, openSync, readSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, fsyncSync, linkSync, lstatSync, openSync, readdirSync, readSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { parsePolicy, RoutingError } from "./core/index.ts";
 import type { Policy } from "./core/index.ts";
 
@@ -33,9 +34,29 @@ export function readPolicyFile(file: string): PolicyFile {
   catch { throw new RoutingError("INVALID_CONFIG", "Policy file contains invalid JSON"); }
   return { bytes, fingerprint: fingerprint(bytes), policy: parsePolicy(input) };
 }
+// Only this policy's UUID-named regular backups participate; never follow symlinks.
+// Cleanup is best-effort after commit, under the cooperative writer lock.
+function pruneBackups(file: string, newest: string): string | undefined {
+  const warning = "Policy applied, but backup cleanup was incomplete; more than 10 backups may remain. Inspect the policy directory before manual cleanup.";
+  try {
+    const directory = dirname(file), prefix = `${basename(file)}.advisor-`;
+    const previous = readdirSync(directory).flatMap(name => {
+      if (name === basename(newest) || !name.startsWith(prefix) || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.bak$/.test(name.slice(prefix.length))) return [];
+      const path = join(directory, name), stat = lstatSync(path);
+      return stat.isFile() && !stat.isSymbolicLink() ? [{ path, modified: stat.mtimeMs }] : [];
+    }).sort((a, b) => b.modified - a.modified || a.path.localeCompare(b.path));
+    let incomplete = false;
+    // Reserve one slot for the just-created backup, even if old mtimes are in the future.
+    for (const backup of previous.slice(9)) {
+      try { unlinkSync(backup.path); } catch { incomplete = true; }
+    }
+    return incomplete ? warning : undefined;
+  } catch { return warning; }
+}
+
 /** Cooperative exclusive lock, byte-level stale check, backup and same-directory atomic replacement.
  * Not a security boundary against hostile local processes or non-cooperating writers. */
-export function writePolicyFile(file: string, expected: string, config: unknown): { backup: string | null } {
+export function writePolicyFile(file: string, expected: string, config: unknown): { backup: string | null; backupCleanupWarning?: string } {
   const policy = parsePolicy(config);
   const text = JSON.stringify(policy.config, null, 2) + "\n";
   if (Buffer.byteLength(text) > MAX_BYTES) throw new RoutingError("INVALID_CONFIG", "Formatted policy exceeds 256 KiB");
@@ -56,7 +77,8 @@ export function writePolicyFile(file: string, expected: string, config: unknown)
     if (readPolicyFile(file).fingerprint !== expected) throw new RoutingError("STALE_DECISION", "Policy changed during apply; inspect and propose again");
     if (current.bytes === null) linkSync(temp, file); // Exclusive create: never overwrite a newly appeared file.
     else { renameSync(temp, file); createdTemp = false; }
-    return { backup };
+    const backupCleanupWarning = backup ? pruneBackups(file, backup) : undefined;
+    return { backup, ...(backupCleanupWarning ? { backupCleanupWarning } : {}) };
   } finally {
     try { if (createdTemp) unlinkSync(temp); }
     finally { closeSync(lockFd); unlinkSync(lock); }

@@ -92,3 +92,43 @@ for (const autoModel of ["virt/auto", "router/auto", "my-models/auto"]) test(`is
   assert.equal(state.data.model.id, "auto/high");
   assert.equal(state.data.thinkingLevel, "off");
 });
+
+
+test("coordinator TTL begins after preparation and remains valid just before expiry", async t => {
+  const f = await fixture(t);
+  let now = Date.now();
+  t.mock.method(Date, "now", () => now);
+  const find = f.ctx.modelRegistry.find.bind(f.ctx.modelRegistry);
+  let slow = true;
+  t.mock.method(f.ctx.modelRegistry, "find", (...args: Parameters<typeof find>) => {
+    if (slow) { now += 120_000; slow = false; } // Simulate time spent in local inventory, not inference.
+    return find(...args);
+  });
+  const tool = f.session.getToolDefinition("virtual_models")!;
+  const ctx = { ...f.ctx, tools: [], executeTool: async () => { throw new Error("No nested tools"); } } as ExtensionToolContext;
+  const call = (args: object) => tool.execute("ttl", args, undefined, undefined, ctx);
+  const decision = (await call({ action: "prepare", selection: "virt/auto:high" })).details as Decision;
+  assert.equal(slow, false);
+  now += 299_999;
+  const result = await call({ action: "answer", decisionId: decision.id, choice: "wiki/edit:high" });
+  assert.equal((result.details as Assignment).choice, "wiki/edit:high");
+  assert.equal(f.calls.length + f.classified.length + f.llmSelections.length, 0);
+});
+
+for (const elapsed of [300_000, 300_001]) test(`coordinator decisions expire at ${elapsed}ms and free the pending cap`, async t => {
+  const f = await fixture(t);
+  let now = Date.now();
+  t.mock.method(Date, "now", () => now);
+  const tool = f.session.getToolDefinition("virtual_models")!;
+  const ctx = { ...f.ctx, tools: [], executeTool: async () => { throw new Error("No nested tools"); } } as ExtensionToolContext;
+  const call = (args: object) => tool.execute("ttl", args, undefined, undefined, ctx);
+  const ids: string[] = [];
+  for (let i = 0; i < 32; i++) ids.push(((await call({ action: "prepare", selection: "virt/auto:high" })).details as Decision).id);
+  await assert.rejects(call({ action: "prepare", selection: "virt/auto:high" }), e => error("INVALID_STATE")(e) && /coordinator.*Advisor drafts are separate/.test((e as Error).message));
+  now += elapsed;
+  // Prepare sweeps expired handles before enforcing the cap.
+  const fresh = (await call({ action: "prepare", selection: "virt/auto:high" })).details as Decision;
+  for (const id of ids) await assert.rejects(call({ action: "answer", decisionId: id, choice: "wiki/edit:high" }), error("STALE_DECISION"));
+  assert.equal(((await call({ action: "answer", decisionId: fresh.id, choice: "wiki/edit:high" })).details as Assignment).choice, "wiki/edit:high");
+  assert.equal(f.calls.length + f.classified.length + f.llmSelections.length, 0);
+});
