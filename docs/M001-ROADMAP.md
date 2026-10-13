@@ -8,7 +8,7 @@ Make routing decisions observable and evaluable before changing their behavior. 
 
 ## Success Criteria
 
-Operators can diagnose a failed route, preview without execution changes and explain without new inference. Maintainers can replay labeled cases offline. Explicit opt-in context controls address follow-ups; capacity constraints preserve hard pins. Optimization requires measurements rather than assumptions.
+Operators can diagnose a failed route, preview without execution changes and explain without new inference. Maintainers can replay labeled cases offline. Explicit opt-in context controls address follow-ups; capacity constraints preserve hard pins. An interactive advisor helps operators express their own routing/cost preferences using discovered models and safe namespace proposals; no universal savings proof is required.
 
 ## Key Risks
 
@@ -63,11 +63,15 @@ Use pure core tests plus isolated real-Pi SDK/RPC sessions with fake providers. 
   - Keep hard effort/scope constraints authoritative. Permitted compaction is not proof of enablement/success; estimated fit does not disable host compaction or guarantee a later transformed payload.
   - **Status:** complete. `npm run verify` passed 149 tests (128 existing + 21 new), typecheck, build, documentation/package checks and 40 compiled offline replay cases. No generation/compaction settings changed and no live inference ran. See [ADR 0002](adr/0002-capacity-is-admission-not-execution.md), [capacity guide](CAPACITY.md) and [S05 completion record](M001-S05-SUMMARY.md).
 
-- [ ] **S06: Measured selector and switching optimization** `risk:medium` `depends:[S03,S04,S05]`
-  > After this: measurements either justify an opt-in exact cache/switch-cost display with tested invalidation, or produce an explicit deferral rather than unnecessary policy complexity.
-  - Count invocations, known/unknown usage, latency and switch frequency first.
-  - If justified, exact caching includes full permitted request/criteria, policy and selector configuration; revalidate every reuse and never replay consumed handles.
-  - Do not implement fuzzy caches, mandatory confidence, automatic downgrades or hidden switch suppression.
+- [x] **S06: Interactive routing-policy advisor** `risk:medium` `depends:[S02,S03,S04,S05]`
+  > After this: a new or existing operator can discover local models/prices, refine terminology and requirements through a probing interview, and explicitly approve a validated namespace proposal without changing unrelated policy or workflow permissions.
+  - Adapt grilling and domain-modeling into a portable bundled skill: decision-tree frontier rounds, recommendations, precise vocabulary, edge cases and shared-understanding confirmation.
+  - Discover physical chat/classifier identities, configured-auth presence, reported prices/unknowns, input/capacity limits and existing settings without credentials, catalog refresh or inference.
+  - Offer optional source-backed task-fit research after workload discovery: benchmark/practitioner evidence, explicit consent and sanitized queries, relevance/version caveats, skip/unavailable paths, and a return to the interview before drafting. Host web capabilities are used; the local advisor tool remains network-free.
+  - Validate namespace-only drafts, show changes/full config, preserve root/unrelated settings, and require user-command application with bounded ephemeral drafts, stale-file checks and backups.
+  - Test first-run and existing-policy flows, privacy/non-mutation, schema/registry rejection and apply lifecycle. Conversational quality and paid evaluation remain separately assessed.
+  - Caching/switch suppression are explicitly deferred. Existing usage/latency diagnostics remain; savings measurements are not a prerequisite.
+  - **Status:** complete. `npm run verify` passed 182 tests (163 existing + 19 advisor tests), typecheck, JS/declaration build, Pi skill discovery, documentation/package checks and 40 compiled replay cases. No paid inference or live interview-quality claim. See [S06 completion record](M001-S06-SUMMARY.md) and [advisor guide](ADVISOR.md).
 
 - [ ] **S07: Integrated lifecycle and compatibility acceptance** `risk:medium` `depends:[S02,S03,S04,S05,S06]`
   > After this: the assembled library/native extension passes the integrated acceptance scenarios and states exactly which host versions and behaviors were verified.
@@ -81,7 +85,7 @@ A slice has a demonstrated public behavior, regression tests, current documentat
 
 ## Requirement Coverage
 
-R1/R2 → S01; R3 → S02; R4 → S03; R5 → S04; R6 → S05; measured overhead → S06; R7 → every slice and S07.
+R1/R2 → S01; R3 → S02; R4 → S03; R5 → S04; R6 → S05; R8 (interactive policy construction) → S06; R7 → every slice and S07.
 
 ## Horizontal Checklist
 
@@ -97,11 +101,11 @@ R1/R2 → S01; R3 → S02; R4 → S03; R5 → S04; R6 → S05; measured overhead
 - **S01 → S02/S03:** versioned immutable `DecisionReceipt`, stable candidate/outcome codes and operation correlation; bounded observer seam in `src/core`; native custom entries separate from assignments and execution-context messages.
 - **S02/S03 → S04:** non-mutating preview plus an evaluation baseline; explicit task-context state must not enter ordinary receipt payloads.
 - **S01/S03 → S05:** inventory assessments and replayable constraints; capacity adds exclusions without modifying accepted effort/scope.
-- **S03/S04/S05 → S06:** measured behavior and complete cache invalidation inputs; cached answer is still revalidated through existing core authority checks.
+- **S02/S03/S04/S05 → S06:** safe diagnostics, scenario-based policy checks, and accurate context/capacity boundaries inform the advisor; no paid inference or runtime policy changes are implicit.
 - **All → S07:** tested public APIs, UI-only receipts, documented lifecycle and explicitly unverified operational claims.
 
 ## Execution Notes
 
-The Pi 1.2.0 compatibility follow-up upgrades the pinned host baseline and adds targeted lifecycle/catalog/compaction interoperability coverage; see [compatibility guidance](COMPATIBILITY.md). It does not complete S06's measurement gate or all of S07's integrated/collision acceptance requirements.
+The Pi 1.2.0 compatibility follow-up upgrades the pinned host baseline and adds targeted lifecycle/catalog/compaction interoperability coverage; see [compatibility guidance](COMPATIBILITY.md). It does not complete S06's advisor workflow or all of S07's integrated/collision acceptance requirements.
 
-Planning and S01–S05 are complete; no external issues or GSD state were created. S04 delivered the narrower LiteLLM-inspired context/affinity scope; durable briefs and automatic coordinator handoffs are deferred. S05 delivered qualified estimated capacity admission, not execution-budget control. S06–S07 remain pending. Per-user-turn routing remains the compatibility default. Live inference remains separately gated.
+Planning and S01–S06 are complete; no external issues or GSD state were created. S04 delivered the narrower LiteLLM-inspired context/affinity scope; durable briefs and automatic coordinator handoffs are deferred. S05 delivered qualified estimated capacity admission, not execution-budget control. S06 delivered the user-approved advisor scope rather than a savings-proof or cache optimization gate; S07 remains pending. Per-user-turn routing remains the compatibility default. Live inference remains separately gated.

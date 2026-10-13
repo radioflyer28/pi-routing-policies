@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Routing-policy advisor
+
+- Bundle a portable `routing-policy-advisor` skill adapted from Matt Pocock's grilling and domain-modeling, with source attribution and retained MIT notice.
+- Add paginated, credential-free local model/pricing discovery and schema/registry-validated single-namespace proposals.
+- Add opt-in task-fit research through host web tools: bounded benchmark/practitioner comparisons, source/version/setup caveats, sanitized queries, explicit skip/unavailable paths, and separate consent for paid model testing.
+- Add explicit user-command apply, stale-file/session/branch checks, exact backups and atomic replacement; never hot-reload, switch models or run inference from advisor support operations.
+- Replace M001 S06's savings/optimization emphasis with user-owned routing-policy construction; caching and live evaluation remain deferred. See [advisor guide](docs/ADVISOR.md).
+
 ### Repository and licensing
 
 - Establish the public `radioflyer28/pi-virtual-models` repository under Apache 2.0.

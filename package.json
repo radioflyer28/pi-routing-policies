@@ -43,11 +43,15 @@
     "docs",
     "evaluation/corpus-v1.json",
     "evaluation/answers-fixture-v1.json",
-    "scripts/evaluate.mjs"
+    "scripts/evaluate.mjs",
+    "skills"
   ],
   "pi": {
     "extensions": [
       "./src/extension.ts"
+    ],
+    "skills": [
+      "./skills"
     ]
   },
   "scripts": {

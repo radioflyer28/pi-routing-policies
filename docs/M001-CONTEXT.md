@@ -24,7 +24,7 @@ Integration. Core contracts, native Pi session behavior, transcript rendering an
 - Offline replay runs without credentials and separates suitability labels from hard-constraint checks. Live evaluation remains disabled by default.
 - Opt-in bounded dialogue and session affinity have explicit privacy, reselection and branch-lifecycle behavior; the existing per-user-turn/latest-user default remains compatible.
 - Capacity constraints produce explicit fit/unknown/compaction consequences without widening scope or effort.
-- Optimization is delivered only when measurements justify it; otherwise it remains explicitly deferred.
+- Operators can build a namespace through a probing advisor interview, local inventory/pricing discovery and explicit approval of a validated proposal; unrelated policy is preserved. Savings proof is not required.
 
 ## Architectural Decisions
 
@@ -56,9 +56,9 @@ Keep existing per-user-turn routing and latest-user-prefix input as the compatib
 
 Use explicit estimates of execution input, never the selector window, and keep unknown limits visible. Strict estimated admission rejects unknown or insufficient capacity; permitted compaction can waive input/context uncertainty but cannot fix an impossible output reserve. Neither mode sets generation limits, owns compaction, nor certifies final provider payloads. Native heuristic counting is an explicit, local pre-transform estimate; see [ADR 0002](adr/0002-capacity-is-admission-not-execution.md).
 
-### Measure before optimizing
+### Let users construct their routing policy
 
-Create frozen evaluation cases and offline replay before adding caching or switch suppression. Exact caching, if justified, binds the entire permitted request, policy and selector configuration, revalidates eligibility and never reuses a consumed authority handle. Fuzzy caching and uncalibrated confidence shortcuts are excluded.
+Adapt grilling's decision-tree rounds and domain-modeling's precise terminology into a bundled advisor. Discover local model capabilities, configured-auth presence and reported prices without probing providers. Users own cost/latency/quality preferences; model/workload diversity makes universal savings proof inappropriate. Separate shared understanding, validated proposal, user-command approval and later reload/selection. Preserve unrelated namespaces and root settings. Caching, switch suppression and live evaluations are deferred, not gates for policy construction. Existing usage/latency observability remains.
 
 ## Error Handling Strategy
 
@@ -86,12 +86,13 @@ The policy parser freezes configuration; the core constructs and consumes single
 - R5: Preserve multi-message task meaning through explicit, bounded context controls.
 - R6: Make capacity constraints and compaction consequences visible without hidden escalation.
 - R7: Preserve existing policy, privacy, lifecycle and library boundaries.
+- R8: Help users construct routing namespaces through factual discovery, iterative interviews, optional consented benchmark/practitioner research, and safely approved proposals. Research informs choices without authorizing model trials or requiring savings proof.
 
 ## Scope
 
 ### In Scope
 
-Decision receipts; operator doctor/preview/explain; offline evaluation/replay; opt-in bounded dialogue/session affinity and explicit reselection; capacity diagnostics and constraints; conditional measured optimization; integrated regression coverage and documentation.
+Decision receipts; operator doctor/preview/explain; offline evaluation/replay; opt-in bounded dialogue/session affinity and explicit reselection; capacity diagnostics and constraints; interactive routing-policy advisor with local discovery, validation and explicit application; integrated regression coverage and documentation.
 
 ### Out of Scope
 
@@ -120,7 +121,7 @@ Retain the 69-test starting baseline. Add public-behavior tests for receipt priv
 3. A versioned offline corpus/replay report can demonstrate constraint behavior and compare recorded selector suitability.
 4. Explicit task context controls preserve meaningful follow-ups across their documented lifecycle.
 5. Capacity requirements fail explicitly or permit documented consumer/Pi-owned compaction without claiming success, disabling host compaction, or modifying generation limits.
-6. Any optimization has measured justification and exact invalidation tests; absence of justification is documented deferral.
+6. A bundled advisor interviews users, discovers available models/prices, validates namespace-only proposals and writes only after explicit user-command approval, with stale-file/lifecycle checks and unrelated-policy preservation.
 7. The assembled extension and library retain all prior guarantees under fresh integrated verification.
 
 ## Open Questions
@@ -128,4 +129,4 @@ Retain the 69-test starting baseline. Add public-behavior tests for receipt priv
 - Detailed command UX and preview cost consent are settled in the diagnostics slice before implementation.
 - S04 affinity follows existing branch state across unchanged reload/resume/forks and compaction; reset is an explicit branch entry. Dialogue uses the current projection, not a durable summary. Lifecycle verification is required before completion.
 - S05 uses explicit caller estimates or opt-in native Pi heuristics; unknowns remain explicit, and direct requests cannot recursively compact. Provider-exact token counting and final-payload guarantees remain outside this admission contract.
-- Cache implementation and switch-cost policy remain contingent on measurements, not committed features.
+- Cache implementation and switch-cost policy are deferred. S06 now prioritizes user-owned policy construction; semantic interview quality and live model fitness are not inferred from fixture tests.

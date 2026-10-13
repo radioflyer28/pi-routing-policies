@@ -54,7 +54,10 @@ test("/vmodel and /virtual-model share setup help when default configuration is 
     process.env.PI_CODING_AGENT_DIR = dir;
     delete process.env.PI_VIRTUAL_MODELS_CONFIG;
     assert.equal(getAgentDir(), dir);
-    virtualModels({ registerCommand: (name, command) => { commands.set(name, command); } } as ExtensionAPI);
+    const tools: string[] = [];
+    const stub: Partial<ExtensionAPI> = { registerCommand: (name, command) => { commands.set(name, command); }, registerTool: tool => { tools.push(tool.name); }, on() { return () => {}; } };
+    virtualModels(stub as ExtensionAPI);
+    assert.deepEqual(tools, ["virtual_models_advisor"]);
   } finally {
     if (originalDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
     else process.env.PI_CODING_AGENT_DIR = originalDir;

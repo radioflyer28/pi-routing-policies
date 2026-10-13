@@ -15,6 +15,7 @@ import { contextOptions } from "./native-context.ts";
 import { registerExecutionContext } from "./execution-context.ts";
 import { DIAGNOSTIC_TYPE, registerDiagnostics } from "./diagnostics.ts";
 import { createSelector } from "./selectors.ts";
+import { registerAdvisor } from "./advisor.ts";
 import { registerRoutingRenderer, renderRoutingNotice, ROUTING_NOTICE_TYPE, selectorDiagnostics } from "./routing-notice.ts";
 import type { RoutingNotice } from "./routing-notice.ts";
 
@@ -51,6 +52,7 @@ export function registerVirtualModels(pi: ExtensionAPI, input: unknown, configPa
   registerRoutingRenderer(pi);
   registerDecisionRenderer(pi);
   const diagnose = registerDiagnostics(pi, policy);
+  const advise = registerAdvisor(pi, { ...(configPath === "injected" ? {} : { file: configPath }), loaded: policy });
   const recordReceipt = (receipt: DecisionReceipt, source: "native" | "tool") => pi.appendEntry(DECISION_RECEIPT_TYPE, { source, receipt });
   const entries = nativeEntries(policy.config);
   const pending = new Map<string, { router: Router; decision: Decision; session: string; anchor: string | null; expires: number }>();
@@ -95,10 +97,10 @@ export function registerVirtualModels(pi: ExtensionAPI, input: unknown, configPa
     }
   });
   registerModelCommand(pi, {
-    description: "Select a virtual policy, reselect on the next request, show status, or doctor / preview / explain. Automatic preview requires --allow-inference (may incur charges).",
+    description: "Select a virtual policy, reselect on the next request, show status, or advisor / doctor / preview / explain. Automatic preview requires --allow-inference (may incur charges).",
     handler: async (args, ctx) => {
       const requested = args.trim();
-      if (await diagnose(requested, ctx)) return;
+      if (await advise(requested, ctx) || await diagnose(requested, ctx)) return;
       if (requested.split(/\s/, 1)[0] === "reselect") {
         if (requested !== "reselect") throw new RoutingError("INVALID_SELECTION", "Use /vmodel reselect without arguments");
         await ctx.waitForIdle();
@@ -229,9 +231,13 @@ export default function virtualModels(pi: ExtensionAPI): void {
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     if (process.env.PI_VIRTUAL_MODELS_CONFIG) throw new RoutingError("INVALID_CONFIG", `Explicit policy file does not exist: ${file}`);
+    const advise = registerAdvisor(pi, { file });
     registerModelCommand(pi, {
-      description: "Show setup instructions for virtual model routing",
-      handler: async (_args, ctx) => display(pi, ctx, `No virtual model policy at ${file}. Create it using examples/virtual-models.json, then /reload. Nothing was selected or created automatically.`),
+      description: "Set up virtual routing with /vmodel advisor or a manually created policy",
+      handler: async (args, ctx) => {
+        if (await advise(args.trim(), ctx)) return;
+        display(pi, ctx, `No virtual model policy at ${file}. Use /vmodel advisor, or create it using examples/virtual-models.json, then /reload. Nothing was selected or created automatically.`);
+      },
     });
     return;
   }

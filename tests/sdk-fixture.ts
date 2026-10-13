@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TestContext } from "node:test";
@@ -12,9 +12,11 @@ import { config } from "./fixtures.ts";
 import type { ClassifierRequest, PolicyConfig } from "../src/core/index.ts";
 
 export const zeroCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-export async function fixture(t: TestContext, options: { selection?: string; policy?: PolicyConfig; toolTurn?: boolean; manager?: Manager; configure?: (pi: ExtensionAPI) => void } = {}) {
+export async function fixture(t: TestContext, options: { selection?: string; policy?: PolicyConfig; toolTurn?: boolean; manager?: Manager; advisorFile?: boolean; configure?: (pi: ExtensionAPI) => void } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "pi-virtual-models-test-"));
   t.after(async () => { await rm(dir, { recursive: true, force: true }); });
+  const advisorPath = join(dir, "virtual-models.json");
+  if (options.advisorFile) await writeFile(advisorPath, JSON.stringify(options.policy ?? config()));
   const runtime = await ModelRuntime.create({ authPath: join(dir, "auth.json"), modelsPath: null, modelsStorePath: join(dir, "catalog.json"), allowModelNetwork: false, refreshOnCreate: false });
   const calls: { model: string; thinking: unknown }[] = [];
   const classified: unknown[] = [];
@@ -74,7 +76,7 @@ export async function fixture(t: TestContext, options: { selection?: string; pol
     extensionFactories: [pi => {
       api = pi;
       pi.registerProvider("fixture", provider);
-      registerVirtualModels(pi, options.policy ?? config());
+      registerVirtualModels(pi, options.policy ?? config(), options.advisorFile ? advisorPath : undefined);
       pi.registerTool({ name: "fixture_continue", label: "Fixture", description: "Fixture only", parameters: Type.Object({}),
         execute: async () => ({ content: [{ type: "text", text: "continue" }], details: {} }) });
       pi.on("session_start", (_event, ctx) => { context = ctx; });
@@ -85,7 +87,7 @@ export async function fixture(t: TestContext, options: { selection?: string; pol
   if (services.diagnostics.some(d => d.type === "error")) throw new Error(JSON.stringify(services.diagnostics));
   const loader = services.resourceLoader;
   const manager = options.manager ?? SessionManager.inMemory(dir);
-  const { session, extensionsResult } = await createAgentSessionFromServices({ services, sessionManager: manager, tools: options.toolTurn ? ["virtual_models", "fixture_continue"] : ["virtual_models"] });
+  const { session, extensionsResult } = await createAgentSessionFromServices({ services, sessionManager: manager, tools: options.toolTurn ? ["virtual_models", "virtual_models_advisor", "fixture_continue"] : ["virtual_models", "virtual_models_advisor"] });
   t.after(() => session.dispose());
   if (extensionsResult.errors.length) throw new Error(JSON.stringify(extensionsResult.errors));
   await session.bindExtensions({ mode: "print" });

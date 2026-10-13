@@ -5,6 +5,7 @@ import { resolve, dirname, relative, isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRouter, parsePolicy } from "../dist/core/index.js";
 import { replayEvaluation } from "../dist/evaluation.js";
+import { loadSkillsFromDir } from "@earendil-works/pi-coding-agent";
 
 const root = resolve(import.meta.dirname, "..");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
@@ -39,7 +40,18 @@ async function markdownFiles(directory) {
   return files;
 }
 let blocks = 0;
-for (const file of ["README.md", ...await markdownFiles("docs")]) {
+assert.deepEqual(manifest.pi.skills, ["./skills"]);
+const advisorSkill = await readFile(resolve(root, "skills/routing-policy-advisor/SKILL.md"), "utf8");
+assert(advisorSkill.replace(/\r\n/g, "\n").startsWith("---\nname: routing-policy-advisor\n"));
+const loadedSkills = loadSkillsFromDir({ dir: resolve(root, "skills"), source: "package-check" });
+assert.deepEqual(loadedSkills.diagnostics, [], "Bundled skills must load without diagnostics");
+assert.deepEqual(loadedSkills.skills.map(skill => skill.name), ["routing-policy-advisor"]);
+for (const phrase of ["frontier", "yes accepts", "shared understanding", "domain_modeling", "advisor apply", "[research.md](research.md)", "research status (completed, partial, skipped or unavailable)"]) assert(advisorSkill.includes(phrase), `Advisor skill missing ${phrase}`);
+// Structural contract checks, not proof that a live assistant follows the workflow.
+const research = await readFile(resolve(root, "skills/routing-policy-advisor/research.md"), "utf8");
+for (const heading of ["1. Agree scope and consent", "2. Protect the user's context", "3. Gather task-relevant evidence", "4. Return a small shortlist to the interview", "Completion and checks"]) assert(research.includes(`## ${heading}`), `Research workflow missing ${heading}`);
+for (const phrase of ["Skip/unavailable path", "paid model testing", "untrusted evidence", "date accessed", "anecdotal", "unverified", "insufficient", "reconfirm shared understanding"]) assert(research.includes(phrase), `Research guardrail missing ${phrase}`);
+for (const file of ["README.md", ...await markdownFiles("docs"), ...await markdownFiles("skills")]) {
   const source = await readFile(resolve(root, file), "utf8");
   assert.equal((source.match(/^```/gm) ?? []).length % 2, 0, `${file}: code fences`);
   for (const match of source.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g)) {
@@ -65,6 +77,6 @@ const npm = process.env.npm_execpath;
 assert(npm, "Run this check through npm run verify");
 const packed = JSON.parse(execFileSync(process.execPath, [npm, "pack", "--dry-run", "--json", "--ignore-scripts"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
 const paths = packed[0].files.map(file => file.path);
-for (const expected of ["LICENSE", "dist/core/index.js", "dist/core/index.d.ts", "dist/classifier.js", "dist/llm.js", "dist/selectors.js", "src/routing-notice.ts", "src/execution-context.ts", "src/native-context.ts", "dist/native-context.js", "src/native-capacity.ts", "dist/native-capacity.js", "dist/core/capacity.js", "docs/CAPACITY.md", "docs/adr/0002-capacity-is-admission-not-execution.md", "src/extension.ts", "docs/adr/0001-bounded-dialogue-and-affinity.md", "examples/virtual-models.json", "docs/IMPLEMENTATION.md", "dist/evaluation.js", "src/evaluation.ts", "scripts/evaluate.mjs", "evaluation/corpus-v1.json", "evaluation/answers-fixture-v1.json"]) assert(paths.includes(expected), `Missing package file: ${expected}`);
+for (const expected of ["skills/routing-policy-advisor/SKILL.md", "skills/routing-policy-advisor/policy-reference.md", "skills/routing-policy-advisor/research.md", "skills/routing-policy-advisor/SOURCES.md", "skills/routing-policy-advisor/LICENSE", "src/advisor.ts", "dist/advisor.js", "src/advisor-store.ts", "docs/ADVISOR.md", "LICENSE", "dist/core/index.js", "dist/core/index.d.ts", "dist/classifier.js", "dist/llm.js", "dist/selectors.js", "src/routing-notice.ts", "src/execution-context.ts", "src/native-context.ts", "dist/native-context.js", "src/native-capacity.ts", "dist/native-capacity.js", "dist/core/capacity.js", "docs/CAPACITY.md", "docs/adr/0002-capacity-is-admission-not-execution.md", "src/extension.ts", "docs/adr/0001-bounded-dialogue-and-affinity.md", "examples/virtual-models.json", "docs/IMPLEMENTATION.md", "dist/evaluation.js", "src/evaluation.ts", "scripts/evaluate.mjs", "evaluation/corpus-v1.json", "evaluation/answers-fixture-v1.json"]) assert(paths.includes(expected), `Missing package file: ${expected}`);
 assert(!paths.some(file => /(^|\/)(node_modules|tests|\.env|auth\.json)(\/|$)/.test(file)), "Unexpected development or credential material in package");
 console.log(`PASS: built exports, side-effect-free core dependency graph, ${blocks} JSON documentation blocks, all local documentation links, 40 built offline replay cases, and ${paths.length} package files.`);

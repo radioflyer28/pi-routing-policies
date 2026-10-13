@@ -24,6 +24,9 @@ This describes the local implementation, not a published package or measured rou
 | `src/diagnostics.ts` | Command grammar, no-inference doctor/explain, consent-gated preview and UI-only reports |
 | `src/evaluation.ts` | Pure bounded artifact validation, independent fixture oracle and deterministic offline replay |
 | `scripts/evaluate.mjs` | Explicit bounded file input/output, CLI split selection and implementation provenance |
+| `src/advisor.ts` | Local public inventory, namespace-only proposals and command-only application |
+| `src/advisor-store.ts` | Bounded policy reads, cooperative lock, stale-byte checks, backups and atomic file replacement |
+| `skills/routing-policy-advisor/` | Grilling/domain-modeling interview adaptation and schema reference |
 | `src/extension.ts` | Opt-in config loading, registration, commands and coordinator tools |
 
 The root/core library exports are independent of Pi runtime packages. Classifier and LLM factories do not discover config or register anything. Creating the native extension is the only path that registers aliases, context hooks, tools or renderers. No process-global extension singleton is assumed.
@@ -43,6 +46,10 @@ Virtual namespace/role components use lower-case ASCII letters, digits and hyphe
 Command/library spelling is `namespace/role:effort`; native spelling is `namespace/role/effort`. Bare auto and explicit medium are distinct registrations. Virtual entries advertise only `thinkingLevels: ["off"]`; their identity conveys virtual effort and the resolver supplies physical thinking. Pi clamps the physical level.
 
 `/vmodel` and `/virtual-model` share one command handler, including status and missing-config help. Selection changes do not infer or invoke a routing call.
+
+## Policy construction (M001 S06)
+
+The bundled advisor skill performs an iterative, user-confirmed design conversation. `virtual_models_advisor` only inspects local allowlisted registry metadata or constructs a bounded in-memory namespace proposal; it does not invoke selectors or mutate policy. `/vmodel advisor apply <id>` is command-only, rechecks identity/eligibility and stale bytes, creates a backup, and atomically replaces the configured file. No reload/selection or permissions are implied. Missing-default onboarding uses the same support; missing explicit files still fail closed. Root settings and unrelated namespaces are preserved. See [advisor behavior and trust limits](ADVISOR.md).
 
 ## Selector execution
 

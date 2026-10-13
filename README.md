@@ -16,9 +16,11 @@ pi -e ./src/extension.ts
 
 Alternatively, install this checkout with `pi install .`. Loading the extension does not create configuration, select a model, or make a routing call.
 
-Copy [examples/virtual-models.json](examples/virtual-models.json) to `virtual-models.json` in your Pi agent directory (normally `~/.pi/agent`). Replace **all** `replace-me` provider/model placeholders with exact physical model IDs from your Pi registry. Configure credentials through Pi, not this policy file.
+For interactive setup, use `/skill:routing-policy-advisor` after installing the whole package (`pi install .`); `/vmodel advisor` shows help. The bundled skill adapts grilling and domain-modeling to discover available models/prices, interview you, optionally research task-relevant benchmarks and practitioner reports with your consent, and propose a namespace. Only your explicit apply command writes it. See the [advisor guide](docs/ADVISOR.md). The assistant conversation may be billed; local discovery/proposal/apply do not run inference.
 
-`PI_VIRTUAL_MODELS_CONFIG` overrides the policy path. Agent-directory overrides are honored. No automatic project config layering occurs. A missing default file provides setup help; a missing explicit file or invalid policy fails loading. After editing the file, use `/reload`.
+Or copy [examples/virtual-models.json](examples/virtual-models.json) to `virtual-models.json` in your Pi agent directory (normally `~/.pi/agent`). Replace **all** `replace-me` provider/model placeholders with exact physical model IDs from your Pi registry. Configure credentials through Pi, not this policy file.
+
+`PI_VIRTUAL_MODELS_CONFIG` overrides the policy path. Agent-directory overrides are honored. No automatic project config layering occurs. A missing default file provides advisor tools and setup help; a missing explicit file or invalid policy fails loading. After editing the file, use `/reload`.
 
 ## Choose the routing backend
 
@@ -404,7 +406,7 @@ This runs typechecking, fake-provider core/SDK/CLI tests, declaration/JavaScript
 
 Out of scope: automatic project layering, fixed-role automatic effort, budget optimization, cross-provider retry fallbacks, tool-permission management, orchestration and verified virtual child launches. Until child startup and physical-target restrictions are independently tested, resolve physical assignments in the parent. No pi-gsd integration is activated by this package.
 
-The source is licensed under [Apache 2.0](LICENSE) and hosted at [radioflyer28/pi-virtual-models](https://github.com/radioflyer28/pi-virtual-models). The manifest remains `private: true` to prevent accidental npm publication; npm publication and name availability remain separate decisions.
+The source is licensed under [Apache 2.0](LICENSE); adapted advisor skill material retains its [upstream MIT notice](skills/routing-policy-advisor/LICENSE). The project is hosted at [radioflyer28/pi-virtual-models](https://github.com/radioflyer28/pi-virtual-models). The manifest remains `private: true` to prevent accidental npm publication; npm publication and name availability remain separate decisions.
 
 - [Pi compatibility and upgrade guidance](docs/COMPATIBILITY.md)
 - [Changelog](CHANGELOG.md)
@@ -415,6 +417,7 @@ The source is licensed under [Apache 2.0](LICENSE) and hosted at [radioflyer28/p
 - [S04 completion and verification](docs/M001-S04-SUMMARY.md)
 - [Capacity admission guide](docs/CAPACITY.md)
 - [S05 completion and verification](docs/M001-S05-SUMMARY.md)
+- [Interactive policy advisor](docs/ADVISOR.md) and [S06 completion](docs/M001-S06-SUMMARY.md)
 - [Decision: capacity admission versus execution control](docs/adr/0002-capacity-is-admission-not-execution.md)
 - [Routing improvements milestone](docs/M001-CONTEXT.md) and [slice roadmap](docs/M001-ROADMAP.md)
 - [Implementation notes](docs/IMPLEMENTATION.md)
