@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+evaluation/local/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Local credentials and runtime configuration
+.npmrc
+auth.json
+*.pem
+*.key
+.pi/
+/virtual-models.json
