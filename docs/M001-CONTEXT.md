@@ -2,7 +2,7 @@
 
 ## Project Description
 
-Improve pi-virtual-models from a mechanically validated router into an inspectable, evaluable routing component. Preserve its standalone library/native-extension architecture and explicit role, namespace and effort constraints. This is project-local planning, not activation of GSD or another workflow engine.
+Improve pi-routing-policies from a mechanically validated router into an inspectable, evaluable routing component. Preserve its standalone library/native-extension architecture and explicit role, namespace and effort constraints. This is project-local planning, not activation of GSD or another workflow engine.
 
 ## Why This Milestone
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Package identity
+
+- Rename the package and GitHub repository from `pi-virtual-models` to `pi-routing-policies` to distinguish the declarative policy engine from Pi's native virtual-model mechanism.
+- Update library import examples and repository links. Retain existing policy filenames, environment variables, commands, tool names and persisted session identifiers; no policy migration is required. The old package import name is not aliased. npm publication remains disabled.
+
 ### Routing-policy advisor
 
 - Bundle a portable `routing-policy-advisor` skill adapted from Matt Pocock's grilling and domain-modeling, with source attribution and retained MIT notice.

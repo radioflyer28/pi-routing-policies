@@ -46,7 +46,7 @@ function registerModelCommand(pi: ExtensionAPI, command: Parameters<ExtensionAPI
 }
 /** Explicit factory seam for SDK consumers/tests. No file discovery or global singleton. */
 export function registerVirtualModels(pi: ExtensionAPI, input: unknown, configPath = "injected"): void {
-  if (typeof pi.registerVirtualModel !== "function") throw new Error("pi-virtual-models requires Pi 1.0+ native virtual models");
+  if (typeof pi.registerVirtualModel !== "function") throw new Error("pi-routing-policies requires Pi 1.0+ native virtual models");
   const policy = parsePolicy(input);
   registerExecutionContext(pi, policy);
   registerRoutingRenderer(pi);

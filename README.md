@@ -1,6 +1,12 @@
-# pi-virtual-models
+# pi-routing-policies
 
-Named model policies with **LLM or native-classifier routing**, namespace-scoped automatic entries, explicit effort pins, optional role guidance, expandable routing notices, and structured decision records. Use it as a standalone Pi extension or a side-effect-free library.
+Declarative model-routing policies for Pi, with **interchangeable LLM and decision-model selectors**. Define named roles, namespace-scoped automatic routes, effort pins and eligibility constraints, with optional role guidance, expandable routing notices and structured decision records. Use it as a Pi extension or a side-effect-free library.
+
+## Policy engine, not a replacement for Pi virtual models
+
+Pi's native virtual models provide selectable model identities, a `route()` callback, physical dispatch and branch-local routing state. This package builds on that mechanism: it supplies the declarative policy, shared `{ state, questions }` decision contract, deterministic eligibility/answer validation, and advisor/diagnostic workflows. Pi can support sophisticated routers without this package; this package makes those policy rules reusable and configurable.
+
+Previously named **pi-virtual-models**. Library imports now use `pi-routing-policies`; no old package-name alias is provided. Existing `virtual-models.json` files, `PI_VIRTUAL_MODELS_CONFIG`, `/vmodel` and `/virtual-model` commands, `virtual_models` / `virtual_models_advisor` tools, skill invocation and persisted session identifiers remain unchanged. No policy migration is required.
 
 **MVP, not published to npm.** Tests use isolated Pi sessions and fake providers. Live routing quality, actual endpoint availability, and virtual child-launch compatibility are not established.
 
@@ -332,8 +338,8 @@ Pending coordinator decisions are single-use, limited to 32, expire five minutes
 Build first. Importing the core performs no ambient config reads, registration, selector calls or session changes:
 
 ```ts
-import { createRouter } from "pi-virtual-models/core";
-import { createSelector } from "pi-virtual-models/selectors";
+import { createRouter } from "pi-routing-policies/core";
+import { createSelector } from "pi-routing-policies/selectors";
 
 // Supply an inventory that checks current physical identity/type, auth,
 // inputs, and consumer-specific restrictions.
@@ -363,7 +369,7 @@ For an existing coordinating LLM, use `router.prepare()` and `router.accept()` i
 To observe decisions, supply the optional third argument:
 
 ```ts
-import type { DecisionReceipt } from "pi-virtual-models/core";
+import type { DecisionReceipt } from "pi-routing-policies/core";
 
 const receipts: DecisionReceipt[] = []; // Example sink; production consumers own retention.
 const observedRouter = createRouter(config, inventory, {
@@ -375,7 +381,7 @@ Each public `resolve`, `prepare`, `accept`, `select` or `revalidate` call delive
 
 Inventory implementations can return a stable `code` with an ineligible result: `model_missing`, `not_physical`, `auth_missing`, `input_unsupported`, `restricted` or `inventory_rejected`. Unknown codes become `inventory_rejected`; the existing optional `reason` prose remains supported but is deliberately not copied into records. Scope/effort/allowlist exclusions are recorded separately. Records contain only checks performed, with the last eligibility check for each choice; they are not decision handles or authority.
 
-`policy.automatic` describes every enabled automatic entry with its scope and resolved selector. `policy.autoModel` is the global identity, or `undefined` when disabled. Standalone parsing accepts `parseSelection(value, Object.keys(policy.automatic))`; router methods bind this automatically. Dedicated factories are also exported from `pi-virtual-models/classifier` and `pi-virtual-models/llm`.
+`policy.automatic` describes every enabled automatic entry with its scope and resolved selector. `policy.autoModel` is the global identity, or `undefined` when disabled. Standalone parsing accepts `parseSelection(value, Object.keys(policy.automatic))`; router methods bind this automatically. Dedicated factories are also exported from `pi-routing-policies/classifier` and `pi-routing-policies/llm`.
 
 Library imports do not activate the UI or inject guidance. Native registration has one explicit owner, not a shared singleton. SDK startup should use Pi's `createAgentSessionServices()` then `createAgentSessionFromServices()` so registrations exist before model selection.
 
@@ -406,7 +412,7 @@ This runs typechecking, fake-provider core/SDK/CLI tests, declaration/JavaScript
 
 Out of scope: automatic project layering, fixed-role automatic effort, budget optimization, cross-provider retry fallbacks, tool-permission management, orchestration and verified virtual child launches. Until child startup and physical-target restrictions are independently tested, resolve physical assignments in the parent. No pi-gsd integration is activated by this package.
 
-The source is licensed under [Apache 2.0](LICENSE); adapted advisor skill material retains its [upstream MIT notice](skills/routing-policy-advisor/LICENSE). The project is hosted at [radioflyer28/pi-virtual-models](https://github.com/radioflyer28/pi-virtual-models). The manifest remains `private: true` to prevent accidental npm publication; npm publication and name availability remain separate decisions.
+The source is licensed under [Apache 2.0](LICENSE); adapted advisor skill material retains its [upstream MIT notice](skills/routing-policy-advisor/LICENSE). The project is hosted at [radioflyer28/pi-routing-policies](https://github.com/radioflyer28/pi-routing-policies). The manifest remains `private: true` to prevent accidental npm publication; npm publication and name availability remain separate decisions.
 
 - [Pi compatibility and upgrade guidance](docs/COMPATIBILITY.md)
 - [Changelog](CHANGELOG.md)

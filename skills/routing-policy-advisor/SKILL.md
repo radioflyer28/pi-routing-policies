@@ -1,6 +1,6 @@
 ---
 name: routing-policy-advisor
-description: Builds or revises pi-virtual-models routing namespaces through a probing interview, local model/pricing discovery, optional benchmark/practitioner research, domain terminology and validated proposals. Use for first-time routing setup, choosing models for a workflow, expressing cost/quality preferences, or stress-testing an existing routing policy.
+description: Builds or revises pi-routing-policies routing namespaces through a probing interview, local model/pricing discovery, optional benchmark/practitioner research, domain terminology and validated proposals. Use for first-time routing setup, choosing models for a workflow, expressing cost/quality preferences, or stress-testing an existing routing policy.
 ---
 
 <objective>

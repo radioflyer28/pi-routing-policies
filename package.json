@@ -1,8 +1,8 @@
 {
-  "name": "pi-virtual-models",
+  "name": "pi-routing-policies",
   "version": "0.1.0",
   "private": true,
-  "description": "Classifier-shaped model policies, deterministic resolution, and native virtual models for Pi",
+  "description": "Declarative model-routing policies for Pi, with interchangeable LLM and decision-model selectors",
   "type": "module",
   "license": "Apache-2.0",
   "engines": {
@@ -92,10 +92,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/radioflyer28/pi-virtual-models.git"
+    "url": "git+https://github.com/radioflyer28/pi-routing-policies.git"
   },
-  "homepage": "https://github.com/radioflyer28/pi-virtual-models#readme",
+  "homepage": "https://github.com/radioflyer28/pi-routing-policies#readme",
   "bugs": {
-    "url": "https://github.com/radioflyer28/pi-virtual-models/issues"
+    "url": "https://github.com/radioflyer28/pi-routing-policies/issues"
   }
 }

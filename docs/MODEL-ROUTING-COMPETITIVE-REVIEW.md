@@ -1,7 +1,7 @@
 # Pi model-routing extensions: competitive review
 
 **Review date:** 2026-10-04  
-**Audience:** maintainers deciding the next changes to pi-virtual-models.  
+**Audience:** maintainers deciding the next changes to pi-routing-policies.
 **Decision this supports:** choose improvements that increase routing trustworthiness and usefulness without making the package a workflow harness.  
 **Status:** historical research snapshot, not a live feature inventory. Follow-up scope was subsequently approved in the conversation and is tracked in the [M001 brief](M001-CONTEXT.md) and [roadmap](M001-ROADMAP.md). Findings below describe the pre-M001 implementation; implementation status belongs in the roadmap.
 

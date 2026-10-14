@@ -13,7 +13,7 @@ import type { ClassifierRequest, PolicyConfig } from "../src/core/index.ts";
 
 export const zeroCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 export async function fixture(t: TestContext, options: { selection?: string; policy?: PolicyConfig; toolTurn?: boolean; manager?: Manager; advisorFile?: boolean; configure?: (pi: ExtensionAPI) => void } = {}) {
-  const dir = await mkdtemp(join(tmpdir(), "pi-virtual-models-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "pi-routing-policies-test-"));
   t.after(async () => { await rm(dir, { recursive: true, force: true }); });
   const advisorPath = join(dir, "virtual-models.json");
   if (options.advisorFile) await writeFile(advisorPath, JSON.stringify(options.policy ?? config()));

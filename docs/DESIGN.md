@@ -1,4 +1,4 @@
-# pi-virtual-models: design and research
+# pi-routing-policies: design and research
 
 Status: architectural contract with a local MVP implementation. See [implementation decisions and verification scope](IMPLEMENTATION.md) for the delivered surface, native spelling, limitations and test procedure. This is the canonical standalone design, relocated from pi-gsd into its own repository. It supersedes the earlier alias-only MVP recommendation and its separate `useWhen`/`avoidWhen` schema. It does not enable routing in pi-gsd, change its current configuration format, or claim child compatibility.
 
@@ -176,7 +176,7 @@ An abstention uses the same answer shape with `choice: "__abstain__"` and is con
 
 ## 5. Library and extension boundaries
 
-One package exposes a side-effect-free core entry point and an opt-in Pi extension entry point. The repository is `radioflyer28/pi-virtual-models`, licensed under Apache 2.0. A published npm name/scope remains undecided; npm publication is disabled. The local core and classifier interfaces are documented in the README; publication stability is not yet promised.
+One package exposes a side-effect-free core entry point and an opt-in Pi extension entry point. The repository is `radioflyer28/pi-routing-policies`, licensed under Apache 2.0. The local package name is `pi-routing-policies`; npm name availability is unverified and npm publication is disabled. The local core and classifier interfaces are documented in the README; publication stability is not yet promised.
 
 | Layer | Responsibility |
 | --- | --- |
